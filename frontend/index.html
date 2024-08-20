@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIBUChat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+
+        @media only screen and (max-width: 600px) {
+            body {
+                font-family: 'Noto Serif', serif;
+            }
+        }
+
+        #chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ff0000;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        #user-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #2a2a2a;
+            color: #ffffff;
+            border: 1px solid #ff0000;
+        }
+
+        #send-button, #login-button {
+            background-color: #ff0000;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        #user-info {
+            margin-bottom: 10px;
+        }
+
+        #buddy-list {
+            float: right;
+            width: 200px;
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ff0000;
+            padding: 10px;
+        }
+
+        .message {
+            margin-bottom: 10px;
+        }
+
+        .nickname {
+            font-weight: bold;
+            color: #ff0000;
+        }
+
+        .pfp {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        iframe {
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="user-info">
+            <input type="text" id="nickname" placeholder="Nickname">
+            <input type="text" id="pfp-url" placeholder="Profile Picture URL">
+            <button id="login-button">Login</button>
+        </div>
+        <div id="chat-messages"></div>
+        <input type="text" id="user-input" placeholder="Type your message...">
+        <button id="send-button">Send</button>
+    </div>
+    <div id="buddy-list">
+        <h3>Buddies (<span id="buddy-count">0</span>)</h3>
+        <ul id="buddies"></ul>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let nickname = '';
+        let pfpUrl = '';
+
+        document.getElementById('login-button').addEventListener('click', () => {
+            nickname = document.getElementById('nickname').value;
+            pfpUrl = document.getElementById('pfp-url').value;
+            if (nickname && pfpUrl) {
+                socket.emit('login', { nickname, pfpUrl });
+            }
+        });
+
+        document.getElementById('send-button').addEventListener('click', sendMessage);
+        document.getElementById('user-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            if (message) {
+                socket.emit('chat message', { nickname, pfpUrl, message });
+                input.value = '';
+            }
+        }
+
+        socket.on('chat message', (msg) => {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+
+            const pfp = document.createElement('img');
+            pfp.src = msg.pfpUrl;
+            pfp.classList.add('pfp');
+            messageElement.appendChild(pfp);
+
+            const nicknameSpan = document.createElement('span');
+            nicknameSpan.classList.add('nickname');
+            nicknameSpan.textContent = msg.nickname + ': ';
+            messageElement.appendChild(nicknameSpan);
+
+            if (msg.message.startsWith('/image ')) {
+                const img = document.createElement('img');
+                img.src = msg.message.slice(7);
+                img.style.maxWidth = '100%';
+                messageElement.appendChild(img);
+            } else if (msg.message.startsWith('/video ') || msg.message.startsWith('/audio ')) {
+                const media = document.createElement(msg.message.startsWith('/video ') ? 'video' : 'audio');
+                media.src = msg.message.slice(7);
+                media.controls = true;
+                media.style.maxWidth = '100%';
+                messageElement.appendChild(media);
+            } else if (msg.message.startsWith('/youtube ')) {
+                const youtubeId = msg.message.slice(9);
+                const iframe = document.createElement('iframe');
+                iframe.width = '560';
+                iframe.height = '315';
+                iframe.src = `https://www.youtube.com/embed/${youtubeId}`;
+                iframe.frameborder = '0';
+                iframe.allowfullscreen = true;
+                messageElement.appendChild(iframe);
+            } else {
+                const linkifiedMessage = linkifyMessage(msg.message);
+                messageElement.innerHTML += linkifiedMessage;
+            }
+
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+
+        socket.on('update buddies', (buddies) => {
+            const buddyList = document.getElementById('buddies');
+            const buddyCount = document.getElementById('buddy-count');
+            buddyList.innerHTML = '';
+            buddyCount.textContent = buddies.length;
+            buddies.forEach(buddy => {
+                const li = document.createElement('li');
+                li.textContent = buddy;
+                buddyList.appendChild(li);
+            });
+        });
+
+        function linkifyMessage(message) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return message.replace(urlRegex, (url) => `<a href="${url}" target="_blank">${url}</a>`);
+        }
+    </script>
+</body>
+</html>
