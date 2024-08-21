@@ -83,6 +83,23 @@
         iframe {
             max-width: 100%;
         }
+
+        #readme {
+            background-color: #000000;
+            border: 2px solid #ff0000;
+            padding: 20px;
+            margin-top: 20px;
+            color: #ffffff;
+        }
+
+        #readme a {
+            color: #ff0000;
+            text-decoration: none;
+        }
+
+        #readme a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -91,6 +108,12 @@
             <input type="text" id="nickname" placeholder="Nickname">
             <input type="text" id="pfp-url" placeholder="Profile Picture URL">
             <button id="login-button">Login</button>
+            <div id="readme">
+        <h2>README</h2>
+        <p>Welcome to MIBUChat! This chat application allows you to communicate with others in real-time.</p>
+        <hl></hl>
+        <a href="https://discord.com/invite/YyYx4Kwm" target="_blank">Join Your Discord Server</a>
+            </div>
         </div>
         <div id="chat-messages"></div>
         <input type="text" id="user-input" placeholder="Type your message...">
